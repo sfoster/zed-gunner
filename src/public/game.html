@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+        body {
+            margin : 0px;
+            overflow: hidden;
+        }
+    </style>
+    <script src="https://aframe.io/releases/0.9.2/aframe.min.js"></script>
+    <script>
+      "use strict";
+      AFRAME.registerComponent("the-game", {
+        schema: {
+          waveSize: { type: 'int', default: 3 }, // how many creeps we release each wave
+          waveFrequency: { type: 'int', default: 5000 }, // how often we start a new wave of creeps we release and at what rate
+        },
+        init() {
+          console.log("the-game component init");
+          this.lastWaveTime = 0;
+          this.waveCount = 0;
+          this.paused = true;
+          this.creepPoolSize = 6;
+          this.centerPosition = this.el.object3D.position;
+
+          console.log("the-game component init'd at ", this.el.components.position);
+
+          this.startSlots = new Array(12);
+          // create a pool of creep entities to try and avoid creating a at runtime
+          this.creepPool = [];
+          this._lastCreepIndex = 0;
+          for (let i=0; i<this.creepPoolSize; i++) {
+            this.creepPool.push(this.createCreep(i));
+          }
+        },
+        tick(time, timeDelta) {
+          console.log("the-game tick: ", this.paused);
+          if (!this.paused &&
+              time - this.lastWaveTime > this.data.waveFrequency) {
+            this.lastWaveTime = time;
+            this.startWave();
+          }
+        },
+        placeCreepOnField(slotIndex) {
+          let target = this.centerPosition;
+          let creep = this.creepPool.pop();
+          if (!creep) {
+            creep = this.createCreep();
+            this.creepPoolSize++;
+          }
+          creep.setAttribute("creep", { startAngle: slotIndex * 30,
+                                        // creeps should head towards the element this component is attached to
+                                        target: `[${this.attrName}]`,
+                                        minimumDistance: this.el.components.geometry.data.radius
+                                      });
+          this.el.appendChild(creep);
+          console.log("placed creep: ", creep, target);
+        },
+        removeCreepFromField(creep) {
+          // uninit all the attributes and properties
+          this.el.removeChild(creep);
+          creep.reset();
+          this.creepPool.push(creep);
+        },
+        slotNeedsCreep(slotIndex) {
+          return !this.startSlots[slotIndex];
+        },
+        createCreep() {
+          let creep = document.createElement("a-box");
+          creep.id = "creep-" + (this._lastCreepIndex++);
+          creep.setAttribute("creep", "");
+          creep.setAttribute("color", "#00c");
+          return creep;
+        },
+        startWave() {
+          console.log("startWave");
+          this.waveCount++;
+          let slotIndex;
+          for(let i=0; i<this.data.waveSize; i++) {
+            // keep generating random 0-11 indices until we find one that's empty
+            do {
+              slotIndex = Math.floor(Math.random() * 12);
+            } while (!this.slotNeedsCreep(slotIndex));
+            console.log("placing creep at: ", slotIndex);
+            this.placeCreepOnField(slotIndex);
+          }
+        },
+      });
+
+      AFRAME.registerComponent("creep", {
+        schema: {
+          startAngle: { type: 'number', default: 0 },
+          target: { type: 'vec3' },
+          minimumDistance: { type: 'number', default: 1 },
+        },
+        speed: 0.5, // metre/second
+        distanceFromTarget: 10,
+        init() {
+          console.log("creep init");
+          this.tmpVec3 = new THREE.Vector3();
+        },
+        update(oldData) {
+          console.log("creep update: ", this.data);
+          this.startAngle = this.data.startAngle;
+          this.target = this.data.target;
+        },
+        reset() {
+          this.distanceFromTarget = 10;
+          this.wasRendered = false;
+        },
+        tick(time, timeDelta) {
+          // update position
+          if (this.el.isConnected && this.distanceFromTarget > this.data.minimumDistance) {
+            this.distanceFromTarget -= this.speed * .001 * timeDelta;
+            this.moveTowardsTarget(); // could thottle to move n-times a second vs. every tick?
+          }
+        },
+        moveTowardsTarget() {
+          this.el.object3D.position.x = Math.cos(this.startAngle) * this.distanceFromTarget;
+          this.el.object3D.position.y = Math.sin(this.startAngle) * this.distanceFromTarget;
+          this.el.object3D.position.z = this.data.target.z;
+          if (!this.wasRendered) {
+            console.log("initial position: ", this.el.object3D.position);
+            this.wasRendered = true;
+          }
+        },
+      });
+    </script>
+  </head>
+
+  <body>
+
+    <a-scene background="color: #FAFAFA">
+      <a-assets>
+        <img id="groundTexture" src="./assets/ground.png">
+      </a-assets>
+      <a-cylinder id="tower" the-game position="0 0 -10" radius="2" height="2" color="#FFC65D" shadow></a-cylinder>
+      <a-plane src="#groundTexture" rotation="-90 0 0" width="30" height="60" repeat="5 5"></a-plane>
+
+      <a-camera position="0 8 12"></a-camera>
+    </a-scene>
+  </body>
+</html>
