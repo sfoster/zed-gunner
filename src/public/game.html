@@ -19,9 +19,9 @@
         init() {
           console.log("the-game component init");
           this.lastCreepReleaseTime = -60000;
-          this.creepReleaseFrequency = 2000;
+          this.creepReleaseFrequency = 10000;
           this.paused = true;
-          this.creepPoolSize = 12;
+          this.creepPoolSize = 6;
           this.centerPosition = this.el.object3D.position;
           this.outerEdgeRadius = 10; // distance in m from the center the creeps should spawn at
 
@@ -70,8 +70,9 @@
 
         handleEvent(evt) {
           switch (evt.type) {
-            case "gloriousdeath": {
-              console.log("gloriousdeath event: ", evt);
+            case "gloriousdeath":
+            case "killed": {
+              console.log("creep killed event: ", evt);
               if (evt.target && evt.target.hasAttribute("creep")) {
                 this.removeCreepFromField(evt.target);
               }
@@ -83,11 +84,13 @@
         play() {
           console.log("the-game play() called");
           this.el.sceneEl.addEventListener("gloriousdeath", this);
+          this.el.sceneEl.addEventListener("killed", this);
         },
 
         pause() {
           console.log("the-game pause() called");
-          this.el.sceneEl.removeEventListener(this);
+          this.el.sceneEl.removeEventListener("gloriousdeath", this);
+          this.el.sceneEl.removeEventListener("killed", this);
         },
 
         placeCreepOnField() {
@@ -145,17 +148,36 @@
         schema: {
           startDegrees: { type: 'number', default: 90 }, // degrees
           target: { type: 'vec3' },
-          speed: { type: 'number', default: 0.75 }, // metre/second
+          speed: { type: 'number', default: 0.25 }, // metre/second
           finishDistance: { type: 'number', default: 1 },
           initialDistance: { type: 'number' },
           distanceFromTarget: { type: 'number', default: -1 },
           alive: { type: 'boolean', default: false },
+          health: { type: 'number', default: 2 },
         },
         init() {
           console.log("creep init: ", this.data.startDegrees);
         },
         play() {
           this.el.setAttribute("creep", "distanceFromTarget", this.data.initialDistance);
+          const colors = [
+            "#ff0000",
+            "#b31b1b", // 1: critical
+            "#4b5320", // 2: healthy
+            ];
+          this.el.addEventListener('click', (evt) => {
+            this.data.health--;
+            if (this.data.health > 0) {
+              // color by health
+              this.el.setAttribute('material', 'color', colors[this.data.health]);
+              // knock it back a bit
+              this.data.distanceFromTarget += 1;
+            } else {
+              this.die("killed");
+            }
+            console.log('I was clicked at: ', evt.detail.intersection.point);
+          });
+
           this.el.object3D.rotation.set(QUARTER_CIRCLE,
                                         TAU - this.data.startDegrees * ONE_DEGREE - QUARTER_CIRCLE,
                                         0);
@@ -180,7 +202,7 @@
         die(type) {
           this.el.setAttribute('creep', 'alive', false);
           console.log("creep: emitting event: ", type);
-          this.el.emit(type, { creepEntity: this.el }, true);
+          this.el.emit(type, { distance: this.data.distanceFromTarget }, true);
         },
         updatePosition(radians, radius) {
           this.el.object3D.position.x = Math.cos(radians) * radius;
@@ -199,7 +221,7 @@
       <a-assets>
         <a-mixin id="creep-mixin"
                  geometry="primitive: cone; height: 2; radiusBottom: 2; radiusTop: 0.5"
-                 material="color: tomato;"
+                 material="color: #4b5320;"
                  rotation="90 0 0"></a-mixin>
         <img id="groundTexture" src="./assets/ground.png">
       </a-assets>
@@ -215,7 +237,14 @@
              line__2="start: 3, 5, -10; end: 3, 10, -10; color: green"
              line__3="start: 3, 5, -10; end: 3, 5, -5; color: blue"></a-entity>
 
-      <a-camera position="0 12 0"></a-camera>
+      <a-camera position="0 12 0">
+        <a-entity cursor="fuse: true; fuseTimeout: 500"
+                  raycaster="far: 20; interval: 60; objects: [creep]"
+                  position="0 0 -1"
+                  geometry="primitive: ring; radiusInner: 0.08; radiusOuter: 0.10"
+                  material="color: black; shader: flat">
+        </a-entity>
+      </a-camera>
     </a-scene>
   </body>
 </html>
