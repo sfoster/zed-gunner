@@ -14,217 +14,20 @@
       const TAU = Math.PI+Math.PI;
       const QUARTER_CIRCLE = Math.PI/2;
       const ONE_DEGREE = Math.PI/180;
-
-      AFRAME.registerComponent("the-game", {
-        init() {
-          console.log("the-game component init");
-          this.lastCreepReleaseTime = -60000;
-          this.creepReleaseFrequency = 10000;
-          this.paused = true;
-          this.creepPoolSize = 6;
-          this.centerPosition = this.el.object3D.position;
-          this.outerEdgeRadius = 10; // distance in m from the center the creeps should spawn at
-
-          console.log("the-game component init'd at ", this.el.components.position);
-
-          this.startSlots = [0,30,60,90,120,150,180,210,240,270,300,330];
-
-          // begin automatically after a couple of seconds
-          setTimeout(() => this.startLevel(), 2000);
-        },
-
-        _shuffleSlots(ar) {
-          // https://github.com/coolaj86/knuth-shuffle
-          let currentIndex = ar.length, temporaryValue, randomIndex;
-          // While there remain elements to shuffle...
-          while (0 !== currentIndex) {
-            // Pick a remaining element...
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex -= 1;
-
-            // And swap it with the current element.
-            temporaryValue = ar[currentIndex];
-            ar[currentIndex] = ar[randomIndex];
-            ar[randomIndex] = temporaryValue;
-          }
-          return ar;
-        },
-
-        startLevel() {
-          this._shuffleSlots(this.startSlots);
-          this._lastSlotIndexAssigned = -1;
-          console.log("startLevel, slots: ", this.startSlots.join(', '));
-          this.paused = false;
-          // could reduce creepReleaseFrequency to speed things up
-        },
-
-        tick(time, timeDelta) {
-          if (this.paused) return;
-          let elapsed = time - this.lastCreepReleaseTime;
-          if (elapsed > this.creepReleaseFrequency) {
-            console.log("release the creep: ", time, elapsed);
-            this.lastCreepReleaseTime = time;
-            this.placeCreepOnField();
-          }
-        },
-
-        handleEvent(evt) {
-          switch (evt.type) {
-            case "gloriousdeath":
-            case "killed": {
-              console.log("creep killed event: ", evt);
-              if (evt.target && evt.target.hasAttribute("creep")) {
-                this.removeCreepFromField(evt.target);
-              }
-              break;
-            }
-          }
-        },
-
-        play() {
-          console.log("the-game play() called");
-          this.el.sceneEl.addEventListener("gloriousdeath", this);
-          this.el.sceneEl.addEventListener("killed", this);
-        },
-
-        pause() {
-          console.log("the-game pause() called");
-          this.el.sceneEl.removeEventListener("gloriousdeath", this);
-          this.el.sceneEl.removeEventListener("killed", this);
-        },
-
-        placeCreepOnField() {
-          // go around the circle using randomized slots (o'clocks)
-          let slotIndex = this._lastSlotIndexAssigned + 1;
-          if (slotIndex > this.startSlots.length - 1) {
-            // we've used every slot, shuffle and reset
-            this.startLevel();
-            slotIndex = 0;
-          }
-          console.log(`trying slotIndex: ${slotIndex}: ${this.startSlots[slotIndex]}`);
-          // check the slot is empty, if not we'll bail and try again next time around
-          if (!this.slotNeedsCreep(this.startSlots[slotIndex])) {
-            console.log(`Slot at ${this.startSlots[slotIndex]} occupied, bailing`);
-            return;
-          }
-          this._lastSlotIndexAssigned = slotIndex;
-
-          let target = this.centerPosition;
-          let creepEntity = this.el.sceneEl.components.pool__creep.requestEntity();
-          creepEntity.setAttribute("creep", {
-            alive: true,
-            startDegrees: this.startSlots[slotIndex], // degrees around the circle
-            target: this.el.object3D.position, // creeps should head towards the element this component is attached to
-            // speed: can be tied to current level or something
-            finishDistance: this.el.components.geometry.data.radius,
-            initialDistance: this.outerEdgeRadius, // distance from center to start at (radius)
-          });
-          creepEntity.play();
-        },
-        removeCreepFromField(creepEntity) {
-          // uninit all the attributes and properties
-          creepEntity.removeAttribute("creep");
-          this.el.sceneEl.components.pool__creep.returnEntity(creepEntity);
-        },
-        slotNeedsCreep(slotDegrees) {
-          // check there's nothing occupying this slot
-          let minDistanceFromCenter = this.outerEdgeRadius - 1.5; // radius of the creep plus a bit?
-          for (let entity of this.el.children) {
-            // find a creep at this slot
-            if (!entity.components) continue;
-            if (!entity.components.creep) continue;
-            if (entity.components.creep.data.startDegrees !== slotDegrees) continue;
-            // see if there's room at this slot for another
-            if (entity.components.creep.data.distanceFromTarget >= minDistanceFromCenter) {
-              return false; // slot is occupied
-            }
-          }
-          // no matches, slot is empty
-          return true;
-        },
-      });
-
-      AFRAME.registerComponent("creep", {
-        schema: {
-          startDegrees: { type: 'number', default: 90 }, // degrees
-          target: { type: 'vec3' },
-          speed: { type: 'number', default: 0.25 }, // metre/second
-          finishDistance: { type: 'number', default: 1 },
-          initialDistance: { type: 'number' },
-          distanceFromTarget: { type: 'number', default: -1 },
-          alive: { type: 'boolean', default: false },
-          health: { type: 'number', default: 2 },
-        },
-        init() {
-          console.log("creep init: ", this.data.startDegrees);
-        },
-        play() {
-          this.el.setAttribute("creep", "distanceFromTarget", this.data.initialDistance);
-          const colors = [
-            "#ff0000",
-            "#b31b1b", // 1: critical
-            "#4b5320", // 2: healthy
-            ];
-          this.el.addEventListener('click', (evt) => {
-            this.data.health--;
-            if (this.data.health > 0) {
-              // color by health
-              this.el.setAttribute('material', 'color', colors[this.data.health]);
-              // knock it back a bit
-              this.data.distanceFromTarget += 1;
-            } else {
-              this.die("killed");
-            }
-            console.log('I was clicked at: ', evt.detail.intersection.point);
-          });
-
-          this.el.object3D.rotation.set(QUARTER_CIRCLE,
-                                        TAU - this.data.startDegrees * ONE_DEGREE - QUARTER_CIRCLE,
-                                        0);
-        },
-        remove() {
-          console.log("creep component removed from: ", this.el);
-        },
-        tick(time, timeDelta) {
-          // update position
-          if (!this.el.isConnected) return; // does this ever happen?
-          if (!this.data.alive) return;
-          if (this.data.distanceFromTarget < 0) return;
-          if (this.data.distanceFromTarget > this.data.finishDistance) {
-            this.data.distanceFromTarget -= this.data.speed * .001 * timeDelta; // could thottle to move n-times a second vs. every tick?
-            this.updatePosition(this.data.startDegrees * ONE_DEGREE, this.data.distanceFromTarget);
-          } else {
-            // maybe do damage
-            // then die
-            this.die("gloriousdeath");
-          }
-        },
-        die(type) {
-          this.el.setAttribute('creep', 'alive', false);
-          console.log("creep: emitting event: ", type);
-          this.el.emit(type, { distance: this.data.distanceFromTarget }, true);
-        },
-        updatePosition(radians, radius) {
-          this.el.object3D.position.x = Math.cos(radians) * radius;
-          this.el.object3D.position.y = 1;
-          this.el.object3D.position.z = Math.sin(radians) * radius;
-        },
-      });
     </script>
   </head>
 
   <body>
 
     <a-scene background="color: #FAFAFA"
-             pool__creep="mixin: creep-mixin; size: 16; dynamic: true"
              position="0 0 -10">
       <a-assets>
-        <a-mixin id="creep-mixin"
-                 geometry="primitive: cone; height: 2; radiusBottom: 2; radiusTop: 0.5"
-                 material="color: #4b5320;"
-                 rotation="90 0 0"></a-mixin>
         <img id="groundTexture" src="./assets/ground.png">
+        <a-asset-item id="tree" src="/path/to/tree.gltf"></a-asset-item>
       </a-assets>
+
+      <a-entity gltf-model="#tree"></a-entity>
+
       <a-cylinder id="tower"
                   the-game
                   position="0 0 0"
@@ -239,10 +42,14 @@
 
       <a-camera position="0 12 0">
         <a-entity cursor="fuse: true; fuseTimeout: 500"
-                  raycaster="far: 20; interval: 60; objects: [creep]"
+                  raycaster="far: 20; interval: 60; objects: a-entity[creep]"
                   position="0 0 -1"
                   geometry="primitive: ring; radiusInner: 0.08; radiusOuter: 0.10"
-                  material="color: black; shader: flat">
+                  material="color: black; shader: flat"
+                  animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+                  animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
+                  animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeInCubic; dur: 500; to: 1 1 1"
+                  >
         </a-entity>
       </a-camera>
     </a-scene>
