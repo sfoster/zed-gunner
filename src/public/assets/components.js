@@ -1,9 +1,11 @@
+/*eslint quotes: [2, "double"] */
+
 const TAU = Math.PI+Math.PI;
 const QUARTER_CIRCLE = Math.PI/2;
 const ONE_DEGREE = Math.PI/180;
 
 AFRAME.registerComponent("health", {
-  schema: {type: 'int', default: 0},
+  schema: {type: "int", default: 0},
   update(oldData) {
     if (this.data.health <= 0 && oldData.health > 0) {
       console.log("health component update, ", this.el, this.data.health);
@@ -17,8 +19,8 @@ AFRAME.registerComponent("health", {
  */
 AFRAME.registerComponent("radial", {
   schema: {
-    angleDegrees: { type: 'number', default: -1 }, // degrees
-    radialDistance: { type: 'number', default: -1 },
+    angleDegrees: { type: "number", default: -1 }, // degrees
+    radialDistance: { type: "number", default: -1 },
   },
   play() {
     console.log(this.el.id, "radial#play at: ", this.data.radialDistance);
@@ -45,8 +47,8 @@ AFRAME.registerComponent("radial", {
 
 AFRAME.registerComponent("creep", {
   schema: {
-    speed: { type: 'number', default: 0.75 }, // metre/second
-    finishDistance: { type: 'number', default: 1 },
+    speed: { type: "number", default: 0.75 }, // metre/second
+    finishDistance: { type: "number", default: 1 },
   },
   healthColors: [
       "#ff0000",
@@ -58,6 +60,7 @@ AFRAME.registerComponent("creep", {
   },
   play() {
     console.log(this.el.id, "creep#play");
+    this.el.addEventListener("fusing", this);
     this.el.addEventListener("click", this);
   },
   pause() {
@@ -74,6 +77,8 @@ AFRAME.registerComponent("creep", {
         throw new Error("Got click invisible entity");
       }
       this.takeHit();
+    } else if (evt.type == "fusing") {
+      console.log("fusing on creep");
     }
   },
   resetToDefaults() {
@@ -104,7 +109,7 @@ AFRAME.registerComponent("creep", {
         // then die
         console.log("do damage: ", this.el.components.health.data);
         this.el.emit("attack", this.el.components.health.data);
-        this.die();
+        this.die("glorious");
       }
     };
   })(),
@@ -115,17 +120,32 @@ AFRAME.registerComponent("creep", {
 
     if (health > 0) {
       // color by health
-      this.el.setAttribute('material', 'color', this.healthColors[health]);
+      this.el.setAttribute("material", "color", this.healthColors[health]);
       // knock it back a bit
       this.el.setAttribute("radial", "radialDistance", this.getRadius() + 1);
     } else {
       this.die();
     }
-    // console.log('I was clicked at: ', evt.detail.intersection.point);
+    // console.log("I was clicked at: ", evt.detail.intersection.point);
   },
-  die() {
-    this.resetToDefaults();
+  die(typeOfDeath="") {
+    if (typeOfDeath !== "glorious") {
+      this.el.setAttribute("animation-mixer", "clip: Death; loop: once");
+      this.el.setAttribute("death-throes", this.el.sceneEl.time);
+    }
     this.el.addState("dead");
   },
+
+});
+
+AFRAME.registerComponent("death-throes", {
+  schema: {type: "int", default: -1},
+  play() {
+    this.el.setAttribute("animation-mixer", {
+      clip: "Death",
+      loop: THREE.LoopOnce,
+      duration: 1.6,
+    });
+  }
 });
 

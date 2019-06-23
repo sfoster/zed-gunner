@@ -63,18 +63,26 @@
             this.lastCreepReleaseTime = time;
             this.placeCreepOnField();
           }
+          // clean up dead creeps
+          for (let creepEl of this.el.sceneEl.querySelectorAll("[death-throes]")) {
+            let timeSinceDeath = time - creepEl.components["death-throes"].data;
+            if (timeSinceDeath > 1500) {
+              this.removeCreepFromField(creepEl);
+              // make sure we get another creep on the field soonish
+              if (this.el.sceneEl.time - this.lastCreepReleaseTime >  this.creepReleaseFrequency*0.25) {
+                this.lastCreepReleaseTime -= this.creepReleaseFrequency*0.75;
+                console.log("moved up next release to: ", this.lastCreepReleaseTime + this.creepReleaseFrequency);
+              }
+            }
+          }
         },
 
         handleEvent(evt) {
           if (evt.type == "stateadded" && evt.detail == "dead") {
-            console.log("stateadded=dead event: ", evt);
-            if (evt.target.hasAttribute("creep")) {
+            // remove entity now unless it is doing a death animation
+            if (evt.target.hasAttribute("creep") && !evt.target.hasAttribute("death-throes")) {
+              console.log("stateadded=dead event: ", evt);
               this.removeCreepFromField(evt.target);
-              // make sure we get another creep on the field soonish
-              if (this.el.sceneEl.time - this.lastCreepReleaseTime >  this.creepReleaseFrequency*0.25) {
-                this.lastCreepReleaseTime -= this.creepReleaseFrequency*0.75;
-                console.log("moved up next release to: ", this.el.sceneEl.time - this.lastCreepReleaseTime + this.creepReleaseFrequency);
-              }
             }
           }
           else if (evt.type == "attack") {
@@ -122,15 +130,15 @@
           let target = this.centerPosition;
           console.log("placeCreepOnField, attaching radial component to ", creepEntity.id);
           creepEntity.setAttribute("material", "color: #4b5320");
+          creepEntity.setAttribute("health", 2);
           creepEntity.setAttribute("radial", {
             angleDegrees: this.startSlots[slotIndex], // degrees around the circle
             radialDistance: this.outerEdgeRadius,
           });
-          creepEntity.setAttribute("health", 2);
           creepEntity.setAttribute("creep", {
             // target: this.el.object3D.position, // creeps should head towards the element this component is attached to
             // speed: can be tied to current level or something
-            finishDistance: this.el.components.geometry.data.radius,
+            finishDistance: 2,
           });
           creepEntity.removeState("dead");
           creepEntity.play();
@@ -139,6 +147,7 @@
         removeCreepFromField(creepEntity) {
           // uninit all the attributes and properties
           creepEntity.removeAttribute("creep");
+          creepEntity.removeAttribute("death-throes");
           creepEntity.removeAttribute("health");
           creepEntity.removeAttribute("radial");
           creepEntity.removeAttribute("material");
@@ -184,12 +193,13 @@
         <a-mixin id="squid-mixin"
                  gltf-model="#squid"></a-mixin>
       </a-assets>
-      <a-cylinder id="tower"
+      <a-entity id="tower"
                   the-game
                   position="0 1 0"
-                  radius="2" height="2"
-                  color="#FFC65D"
-                  shadow></a-cylinder>
+                  gltf-model="#house"
+                  scale="1 1 1"
+                  geometry="primitive: box; width: 1; height: 1; depth: 1"
+                  shadow></a-entity>
       <a-cylinder src="#groundTexture" position="0 0 " radius="20" height="0.1"></a-cylinder>
 
       <a-entity line="start: 3, 5, -10; end: 12, 5, -10; color: red"
