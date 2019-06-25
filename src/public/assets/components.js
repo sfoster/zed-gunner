@@ -74,7 +74,7 @@ AFRAME.registerComponent("creep", {
         throw new Error("Got click on paused entity");
       }
       if (!this.el.object3D.visible) {
-        throw new Error("Got click invisible entity");
+        throw new Error("Got click on invisible entity");
       }
       this.takeHit();
     } else if (evt.type == "fusing") {
@@ -119,8 +119,7 @@ AFRAME.registerComponent("creep", {
     this.el.setAttribute("health", health);
 
     if (health > 0) {
-      // color by health
-      this.el.setAttribute("material", "color", this.healthColors[health]);
+      // TODO: change color when hit?
       // knock it back a bit
       this.el.setAttribute("radial", "radialDistance", this.getRadius() + 1);
     } else {
