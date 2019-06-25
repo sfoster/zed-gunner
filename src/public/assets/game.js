@@ -1,15 +1,5 @@
 "use strict";
 
-AFRAME.registerSystem('my-component', {
-  schema: {},  // System schema. Parses into `this.data`.
-
-  init: function () {
-    // Called on scene initialization.
-  },
-
-  // Other handlers and methods.
-});
-
 AFRAME.registerSystem("the-game", {
   schema: {
 

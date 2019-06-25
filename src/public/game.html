@@ -21,6 +21,7 @@
              position="0 0 -10">
       <a-assets>
         <img id="groundTexture" src="./assets/ground.png">
+        <audio id="shot" src="./assets/gun-shot.mp3" preload="auto"></audio>
         <a-asset-item id="house" src="./assets/ZombHouse.glb"></a-asset-item>
         <a-asset-item id="zombie" src="./assets/zombie.glb"></a-asset-item>
         <a-mixin id="creep-mixin"
@@ -35,6 +36,8 @@
                  gltf-model="#squid"></a-mixin>
       </a-assets>
       <a-entity id="tower"
+                  defender="weapon: a-camera > [cursor]"
+                  health="100"
                   position="0 1 0"
                   gltf-model="#house"
                   scale="1 1 1"
@@ -50,8 +53,9 @@
         <a-entity cursor="fuse: true; fuseTimeout: 500"
                   raycaster="far: 20; interval: 60; objects: a-entity[creep]"
                   position="0 0 -1"
+                  sound="src: #shot; positional: false"
                   geometry="primitive: ring; radiusInner: 0.08; radiusOuter: 0.10"
-                  material="color: black; shader: flat"
+                  material="color: #900; shader: flat"
                   animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
                   animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
                   animation__mouseleave="property: scale; startEvents: mouseleave; easing: easeInCubic; dur: 500; to: 1 1 1"

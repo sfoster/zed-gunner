@@ -1,3 +1,4 @@
+"use strict";
 /*eslint quotes: [2, "double"] */
 
 const TAU = Math.PI+Math.PI;
@@ -148,3 +149,24 @@ AFRAME.registerComponent("death-throes", {
   }
 });
 
+AFRAME.registerComponent("defender", {
+  schema: {
+    weapon: {type: 'selector'},
+  },
+  play() {
+    console.log("defender play");
+    this.data.weapon.addEventListener("click", this);
+  },
+  pause() {
+    this.data.weapon.removeEventListener("click", this);
+  },
+  handleEvent(event) {
+    if (event.type == "click") {
+      console.log("click event: ", event);
+      this.soundEffect();
+    }
+  },
+  soundEffect() {
+    this.data.weapon.components.sound.playSound();
+  },
+});
