@@ -30,26 +30,28 @@
   </script>
 
   <!-- Define your 3d scene and enabled ar.js -->
-  <a-scene embedded arjs='trackingMethod: best;'>
+  <a-scene embedded arjs="sourceType: webcam; detectionMode: mono; maxDetectionRate: 30; trackingMethod: best; canvasWidth: 240; canvasHeight: 180">
 
     <!-- Create a anchor to attach your augmented reality -->
-    <a-anchor hit-testing-enabled='true'>
-
-      <a-entity line="start: 0, 0, 0; end: 5, 0, 0; color: red"
-             line__2="start: 0, 0, 0; end: 0, 5, 0; color: green"
-             line__3="start: 0, 0, 0; end: 0, 0, 5; color: blue"></a-entity>
+    <a-marker preset="hero" hit-testing-enabled="true">
 
       <!-- Add your augmented reality here -->
-      <a-box position='0 0 0' material='opacity: 0.5; side:double; color:red;' logger>
+      <a-entity line="start: 0, 0, 0; end: 1, 0, 0; color: red"
+             line__2="start: 0, 0, 0; end: 0, 1, 0; color: green"
+             line__3="start: 0, 0, 0; end: 0, 0, 1; color: blue"></a-entity>
+      <a-box position="0 0 0" material='opacity: 0.5; side:double; color:red;'></a-box>
+
+      <!-- a-box position='0 0 0' material='opacity: 0.5; side:double; color:red;' logger>
         <a-torus-knot radius='0.26' radius-tubular='0.05'>
           <a-animation attribute="rotation" to="360 0 0" dur="5000" easing='linear' repeat="indefinite"></a-animation>
         </a-torus-knot>
-      </a-box>
+      </a-box -->
 
-    </a-anchor>
+    </a-marker>
 
     <!-- Define a static camera -->
-    <a-camera-static logger/>
+    <a-entity camera></a-entity>
+    <!-- a-camera-static logger/ -->
 
   </a-scene>
 </body>

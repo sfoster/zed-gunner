@@ -98,8 +98,10 @@ AFRAME.registerSystem("the-game", {
     console.log("the-game play() called");
 
     this.sceneEl = document.querySelector("a-scene");
-    this.targetEl = this.sceneEl.querySelector("#tower");
-    this.cursorEl = this.sceneEl.querySelector("[cursor]");
+    this.stageEl = this.sceneEl.querySelector("#theMarker") || this.sceneEl;
+
+    this.targetEl = this.stageEl.querySelector("#tower");
+    this.cursorEl = this.stageEl.querySelector("[cursor]");
 
     this.centerPosition = this.targetEl.object3D.position;
     this.outerEdgeRadius = 10; // distance in m from the center the creeps should spawn at
@@ -181,6 +183,7 @@ AFRAME.registerSystem("the-game", {
       finishDistance: 2,
     });
     creepEntity.removeState("dead");
+    this.stageEl.appendChild(creepEntity);
     creepEntity.play();
     console.log("placeCreepOnField, creep health: ", creepEntity.components.health.data);
   },
@@ -193,6 +196,7 @@ AFRAME.registerSystem("the-game", {
     creepEntity.removeAttribute("material");
     // console.log(`removeCreepFromField, ${creepEntity.id} has components: `, Object.keys(creepEntity.components));
     this.sceneEl.components.pool__creep.returnEntity(creepEntity);
+    this.sceneEl.appendChild(creepEntity);
   },
   slotNeedsCreep(slotDegrees) {
     // check there's nothing occupying this slot
