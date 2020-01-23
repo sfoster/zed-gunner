@@ -6,22 +6,41 @@
             margin : 0px;
             overflow: hidden;
         }
+        #landing-overlay {
+          position: absolute;
+          z-index: 1;
+          top: 0; left: 0; right: 0; bottom: 0;
+          display:flex;
+          justify-content: center;
+          flex-direction: column;
+          text-align: center;
+          background-color: rgba(33,33,33,0.4);
+          color: #fff;
+        }
+        #landing-overlay.clicked {
+          opacity: 0;
+          pointer-events: none;
+        }
     </style>
-    <script src="./assets/vendor/aframe-v0.9.2.js"></script>
+    <script src="./assets/vendor/aframe-v1.0.1.js"></script>
     <script src="./assets/vendor/animation-mixer.js"></script>
     <script src="./assets/components.js"></script>
     <script src="./assets/game.js"></script>
     <!-- no ar.js here yet... -->
+	<!-- maybe handled by aframe? -->
   </head>
 
   <body>
+    <div id="landing-overlay"><h2>Click to play</h2></div>
+    <template id="deferred-assets">
+      <audio id="shot" src="./assets/gun-shot.mp3"></audio>
+    </template>
 
     <a-scene background="color: #FAFAFA"
              pool__creep="mixin: creep-mixin; size: 8; dynamic: false"
              position="0 0 -10">
       <a-assets>
         <img id="groundTexture" src="./assets/ground.png">
-        <audio id="shot" src="./assets/gun-shot.mp3" preload="auto"></audio>
         <a-asset-item id="house" src="./assets/ZombHouse.glb"></a-asset-item>
         <a-asset-item id="zombie" src="./assets/zombie.glb"></a-asset-item>
         <a-mixin id="creep-mixin"
@@ -29,11 +48,6 @@
                  scale="0.6 0.6 0.6"
                  animation-mixer="clip: WalkCycle"
                  shadow></a-mixin>
-
-        <a-mixin id="cone-mixin"
-                 geometry="primitive: cone; height: 2; radiusBottom: 2; radiusTop: 0.5"></a-mixin>
-        <a-mixin id="squid-mixin"
-                 gltf-model="#squid"></a-mixin>
       </a-assets>
       <a-entity id="tower"
                   defender="weapon: a-camera > [cursor]"
@@ -53,7 +67,6 @@
         <a-entity cursor="fuse: true; fuseTimeout: 500"
                   raycaster="far: 20; interval: 60; objects: a-entity[creep]"
                   position="0 0 -1"
-                  sound="src: #shot; positional: false"
                   geometry="primitive: ring; radiusInner: 0.08; radiusOuter: 0.10"
                   material="color: #900; shader: flat"
                   animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
@@ -63,5 +76,12 @@
         </a-entity>
       </a-camera>
     </a-scene>
+    <script>
+    let overlay = document.querySelector("#landing-overlay");
+    overlay.addEventListener("click", evt => {
+      overlay.classList.add("clicked");
+      document.querySelector("a-scene").systems["the-game"].start();
+    }, { once: true });
+    </script>
   </body>
 </html>
