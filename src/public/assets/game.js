@@ -13,6 +13,34 @@ AFRAME.registerSystem("the-game", {
 
     this.startSlots = [0,30,60,90,120,150,180,210,240,270,300,330];
     this._creepCount = 0;
+    window.addEventListener('load', (event) => {
+      this.play();
+    });
+  },
+
+  _shuffleSlots(ar) {
+    // https://github.com/coolaj86/knuth-shuffle
+    let currentIndex = ar.length, temporaryValue, randomIndex;
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+      // Pick a remaining element...
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      // And swap it with the current element.
+      temporaryValue = ar[currentIndex];
+      ar[currentIndex] = ar[randomIndex];
+      ar[randomIndex] = temporaryValue;
+    }
+    return ar;
+  },
+
+  startLevel() {
+    this._shuffleSlots(this.startSlots);
+    this._lastSlotIndexAssigned = -1;
+    console.log("startLevel, is paused: ", this.paused);
+    this.paused = false;
+    // could reduce creepReleaseFrequency to speed things up each time
   },
 
   tick(time, timeDelta) {
@@ -49,93 +77,18 @@ AFRAME.registerSystem("the-game", {
     }
   },
 
-  start() {
-    // load deferred assets then play
-    let templateNode = document.querySelector("#deferred-assets");
-    let loaded = this.loadAssets(templateNode, 25000); // give up after 25s
-    loaded.then(() => {
-      console.log("deferred-assets loaded, calling play()");
-      this.play();
-    }).catch(ex => {
-      console.log(ex.message);
-    });
-  },
-
-  loadAssets(template, timeoutMs) {
-    let assetsFrag = document.importNode(template.content, true);
-    let timerId;
-    let timedOut = new Promise((res, rej) => setTimeout(() => {
-      rej(new Error("Timeout loading assets"));
-    }, timeoutMs));
-    let loadPromises = Array.from(assetsFrag.children).map(function(elem) {
-      if (!elem.src || elem.readyState) {
-        console.log("nothing to load ", elem.getAttribute("src"));
-        return Promise.resolve(true);
-      }
-      if (elem instanceof HTMLMediaElement) {
-        elem.load();
-        return new Promise((resolve, reject) => {
-          elem.addEventListener("canplaythrough", resolve, { once: true });
-        });
-      }
-      return new Promise((resolve, reject) => {
-        elem.onload = () => { console.log("loaded: ", this); resolve() };
-        elem.onerror = (ex) => { console.log("error: ", this, ex); reject() };
-      });
-    });
-    let container = document.createElement("a-node");
-    container.appendChild(assetsFrag);
-    this.sceneEl.appendChild(container);
-
-    return Promise.race([
-      timedOut,
-      Promise.all(loadPromises)
-    ]);
-
-  },
-
   play() {
     console.log("the-game play() called");
 
     this.sceneEl = document.querySelector("a-scene");
-    this.targetEl = this.sceneEl.querySelector("#tower");
-    this.cursorEl = this.sceneEl.querySelector("[cursor]");
-
+    this.targetEl = document.querySelector("#tower");
     this.centerPosition = this.targetEl.object3D.position;
-    this.outerEdgeRadius = 10; // distance in m from the center the creeps should spawn at
+    this.outerEdgeRadius = 4; // distance in m from the center the creeps should spawn at
 
     this.sceneEl.addEventListener("stateadded", this);
     this.sceneEl.addEventListener("damage", this);
-
-    this.cursorEl.setAttribute("sound", "src: ./assets/gun-shot.mp3; positional: false");
-
-    // begin automatically after a bit
-    setTimeout(() => this.startLevel(), 1000);
-  },
-
-  _shuffleSlots(ar) {
-    // https://github.com/coolaj86/knuth-shuffle
-    let currentIndex = ar.length, temporaryValue, randomIndex;
-    // While there remain elements to shuffle...
-    while (0 !== currentIndex) {
-      // Pick a remaining element...
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex -= 1;
-
-      // And swap it with the current element.
-      temporaryValue = ar[currentIndex];
-      ar[currentIndex] = ar[randomIndex];
-      ar[randomIndex] = temporaryValue;
-    }
-    return ar;
-  },
-
-  startLevel() {
-    this._shuffleSlots(this.startSlots);
-    this._lastSlotIndexAssigned = -1;
-    console.log("startLevel, is paused: ", this.paused);
-    this.paused = false;
-    // could reduce creepReleaseFrequency to speed things up each time
+    // begin automatically after a couple of seconds
+    setTimeout(() => this.startLevel(), 2000);
   },
 
   pause() {
@@ -178,7 +131,7 @@ AFRAME.registerSystem("the-game", {
     });
     creepEntity.setAttribute("creep", {
       // speed: can be tied to current level or something
-      finishDistance: 2,
+      finishDistance: .2,
     });
     creepEntity.removeState("dead");
     creepEntity.play();

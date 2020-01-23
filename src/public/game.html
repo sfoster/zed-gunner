@@ -6,67 +6,64 @@
             margin : 0px;
             overflow: hidden;
         }
-        #landing-overlay {
-          position: absolute;
-          z-index: 1;
-          top: 0; left: 0; right: 0; bottom: 0;
-          display:flex;
-          justify-content: center;
-          flex-direction: column;
-          text-align: center;
-          background-color: rgba(33,33,33,0.4);
-          color: #fff;
-        }
-        #landing-overlay.clicked {
-          opacity: 0;
-          pointer-events: none;
-        }
     </style>
-    <script src="./assets/vendor/aframe-v1.0.1.js"></script>
+    <script src="https://aframe.io/releases/1.0.3/aframe.min.js"></script>
     <script src="./assets/vendor/animation-mixer.js"></script>
     <script src="./assets/components.js"></script>
     <script src="./assets/game.js"></script>
-    <!-- no ar.js here yet... -->
-	<!-- maybe handled by aframe? -->
+	
+	<script>
+		if (window.location.protocol == "http:")
+        window.location = "https://" + window.location.hostname;
+	</script>
+	
   </head>
 
   <body>
-    <div id="landing-overlay"><h2>Click to play</h2></div>
-    <template id="deferred-assets">
-      <audio id="shot" src="./assets/gun-shot.mp3"></audio>
-    </template>
 
     <a-scene background="color: #FAFAFA"
-             pool__creep="mixin: creep-mixin; size: 8; dynamic: false"
+             pool__creep="mixin: creep-mixin; size: 3; dynamic: false"
              position="0 0 -10">
       <a-assets>
         <img id="groundTexture" src="./assets/ground.png">
+        <audio id="shot" src="./assets/gun-shot.mp3" preload="auto"></audio>
         <a-asset-item id="house" src="./assets/ZombHouse.glb"></a-asset-item>
         <a-asset-item id="zombie" src="./assets/zombie.glb"></a-asset-item>
         <a-mixin id="creep-mixin"
                  gltf-model="#zombie"
-                 scale="0.6 0.6 0.6"
+                 scale="0.05 0.05 0.05"
                  animation-mixer="clip: WalkCycle"
                  shadow></a-mixin>
+
+        <a-mixin id="cone-mixin"
+                 geometry="primitive: cone; height: 2; radiusBottom: 2; radiusTop: 0.5"></a-mixin>
+        <a-mixin id="squid-mixin"
+                 gltf-model="#squid"></a-mixin>
       </a-assets>
+	  
+	  <a-light type="point" color="yellow" position="1 1 1"></a-light>
+	  
       <a-entity id="tower"
                   defender="weapon: a-camera > [cursor]"
                   health="100"
-                  position="0 1 0"
+                  position="0 0 0"
                   gltf-model="#house"
-                  scale="1 1 1"
-                  geometry="primitive: box; width: 1; height: 1; depth: 1"
-                  shadow></a-entity>
-      <a-cylinder src="#groundTexture" position="0 0 " radius="20" height="0.1"></a-cylinder>
+                  scale=".1 .1 .1"
+                  geometry="primitive: box; width: .2; height: .2; depth: .2"
+                  shadow>
+	  </a-entity>
+				  
+      <!-- <a-cylinder src="#groundTexture" position="0 0 0" radius="20" height="0.1"></a-cylinder> -->
 
       <a-entity line="start: 3, 5, -10; end: 12, 5, -10; color: red"
              line__2="start: 3, 5, -10; end: 3, 10, -10; color: green"
              line__3="start: 3, 5, -10; end: 3, 5, -5; color: blue"></a-entity>
 
-      <a-camera position="0 10 -1" wasd-controls>
-        <a-entity cursor="fuse: true; fuseTimeout: 500"
+      <a-camera position="0 1 0" wasd-controls>
+        <a-entity cursor="fuse: true; fuseTimeout: 100"
                   raycaster="far: 20; interval: 60; objects: a-entity[creep]"
                   position="0 0 -1"
+                  sound="src: #shot; positional: false"
                   geometry="primitive: ring; radiusInner: 0.08; radiusOuter: 0.10"
                   material="color: #900; shader: flat"
                   animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
@@ -75,13 +72,10 @@
                   >
         </a-entity>
       </a-camera>
+	  
+	  
+	  <a-light type="directional" light="intensity: 5" position="0 1 0">
+	  
     </a-scene>
-    <script>
-    let overlay = document.querySelector("#landing-overlay");
-    overlay.addEventListener("click", evt => {
-      overlay.classList.add("clicked");
-      document.querySelector("a-scene").systems["the-game"].start();
-    }, { once: true });
-    </script>
   </body>
 </html>

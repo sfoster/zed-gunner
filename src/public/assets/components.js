@@ -41,15 +41,15 @@ AFRAME.registerComponent("radial", {
   },
   updatePosition(radians, radius) {
     this.el.object3D.position.x = Math.cos(radians) * radius;
-    this.el.object3D.position.y = 1;
+    this.el.object3D.position.y = 0;
     this.el.object3D.position.z = Math.sin(radians) * radius;
   },
 });
 
 AFRAME.registerComponent("creep", {
   schema: {
-    speed: { type: "number", default: 0.75 }, // metre/second
-    finishDistance: { type: "number", default: 1 },
+    speed: { type: "number", default: 0.2 }, // metre/second
+    finishDistance: { type: "number", default: .2 },
   },
   healthColors: [
       "#ff0000",
