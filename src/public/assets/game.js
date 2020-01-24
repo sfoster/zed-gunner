@@ -102,7 +102,7 @@ AFRAME.registerSystem("the-game", {
     this.cursorEl = this.sceneEl.querySelector("[cursor]");
 
     this.centerPosition = this.targetEl.object3D.position;
-    this.outerEdgeRadius = 10; // distance in m from the center the creeps should spawn at
+    this.outerEdgeRadius = 4; // distance in m from the center the creeps should spawn at
 
     this.sceneEl.addEventListener("stateadded", this);
     this.sceneEl.addEventListener("damage", this);
@@ -178,7 +178,7 @@ AFRAME.registerSystem("the-game", {
     });
     creepEntity.setAttribute("creep", {
       // speed: can be tied to current level or something
-      finishDistance: 2,
+      finishDistance: .2,
     });
     creepEntity.removeState("dead");
     creepEntity.play();
